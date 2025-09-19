@@ -1,1 +1,1 @@
-// Placeholder file for project structure
+/// <reference types="vite/client" />
