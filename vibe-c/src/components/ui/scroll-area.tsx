@@ -37,6 +37,3 @@ ScrollBar.displayName = ScrollAreaPrimitive.ScrollAreaScrollbar.displayName;
 
 export { ScrollArea, ScrollBar };
 // Placeholder file for project structure --- IGNORE ---
-File: src/components/ui/navigation-menu.tsx
---- a/file:///c%3A/Users/Administrator/Desktop/EDUWELL%20FOLDER/vibe-c/src/components/ui/navigation-menu.tsx
-+++ b:file:///c%3A/Users/Administrator/Desktop/EDUWELL%20FOLDER/vibe-c/src/components/ui/navigation-menu.tsx

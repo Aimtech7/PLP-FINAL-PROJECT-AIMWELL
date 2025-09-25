@@ -19,5 +19,3 @@ const Textarea = React.forwardRef<HTMLTextAreaElement, React.TextareaHTMLAttribu
 Textarea.displayName = 'Textarea';
 
 export { Textarea };
-export type { React.ComponentPropsWithoutRef<typeof Textarea> as TextareaProps };
-// Placeholder file for project structure --- IGNORE ---

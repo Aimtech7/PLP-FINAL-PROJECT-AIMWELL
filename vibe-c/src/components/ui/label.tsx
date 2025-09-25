@@ -13,7 +13,3 @@ const Label = React.forwardRef<
 Label.displayName = LabelPrimitive.Root.displayName;
 
 export { Label };
-export type { React.ComponentPropsWithoutRef<typeof LabelPrimitive.Root> as LabelProps, VariantProps<typeof labelVariants> as LabelVariants };
-File: src/components/ui/form.tsx
---- a/file:///c%3A/Users/Administrator/Desktop/EDUWELL%20FOLDER/vibe-c/src/components/ui/form.tsx
-+++ b:file:///c%3A/Users/Administrator/Desktop/EDUWELL%20FOLDER/vibe-c/src/components/ui/form.tsx

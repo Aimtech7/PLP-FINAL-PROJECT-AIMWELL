@@ -47,6 +47,3 @@ const TabsContent = React.forwardRef<
 TabsContent.displayName = TabsPrimitive.Content.displayName;
 
 export { Tabs, TabsList, TabsTrigger, TabsContent };
-export type { React.ComponentPropsWithoutRef<typeof Tabs> as TabsProps };
-// Placeholder file for project structure --- IGNORE ---
-- --- IGNORE ---
