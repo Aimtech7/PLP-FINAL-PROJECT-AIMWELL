@@ -1,19 +1,6 @@
 import { useLocation } from 'react-router-dom';
 import { NavLink } from 'react-router-dom';
-import {
-  Home,
-  BookOpen,
-  Heart,
-  Apple,
-  Users,
-  CreditCard,
-  Settings,
-  Shield,
-  Award,
-  FolderKanban,
-  UserCog,
-  Sparkles,
-} from 'lucide-react';
+import { Chrome as Home, BookOpen, Heart, Apple, Users, CreditCard, Settings, Shield, Award, FolderKanban, UserCog, Sparkles } from 'lucide-react';
 import {
   Sidebar,
   SidebarContent,
