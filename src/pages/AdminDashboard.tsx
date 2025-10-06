@@ -1,6 +1,7 @@
 import { useState, useRef } from "react";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { supabase } from "@/integrations/supabase/client";
+import AIChat from "@/components/AIChat";
 import {
   LayoutDashboard,
   BarChart3,
@@ -550,6 +551,7 @@ const AdminDashboardContent = () => {
           </div>
         </main>
       </div>
+      <AIChat />
     </div>
   );
 };
