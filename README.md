@@ -1,4 +1,7 @@
+<<<<<<< HEAD
 # PLP-FINAL-PROJECT-AIMWELL
+=======
+>>>>>>> b56f1636734404622a51519d2ee6fe8ec4b06f17
 # # 📘 AIMWELL – Intelligent Learning & Wellness Platform  
 
 ![AIMWELL Banner](https://img.shields.io/badge/AIMWELL-AI%20Powered-blue?style=for-the-badge&logo=python&logoColor=white)
@@ -130,4 +133,9 @@ For partnerships, investments, or collaboration:
 
 ---
 
+<<<<<<< HEAD
 🔥 *AIMWELL – Empowering Learning, Health, and Growth through A
+=======
+🔥 *AIMWELL – Empowering Learning, Health, and Growth through AI.*  
+
+>>>>>>> b56f1636734404622a51519d2ee6fe8ec4b06f17
