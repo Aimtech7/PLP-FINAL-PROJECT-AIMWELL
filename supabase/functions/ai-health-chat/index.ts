@@ -1,85 +1,77 @@
-import "https://deno.land/x/xhr@0.1.0/mod.ts";
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.58.0';
-import { z } from 'https://deno.land/x/zod@v3.22.4/mod.ts';
+import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey",
 };
 
-// Input validation schema
-const chatRequestSchema = z.object({
-  message: z.string().min(1, "Message cannot be empty").max(2000, "Message too long"),
-  conversationHistory: z.array(z.object({
-    role: z.enum(['user', 'assistant', 'system']),
-    content: z.string().max(5000)
-  })).max(50).optional()
-});
+interface ChatMessage {
+  role: 'user' | 'assistant' | 'system';
+  content: string;
+}
 
-serve(async (req) => {
-  // Handle CORS preflight requests
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+interface RequestBody {
+  message: string;
+  conversationHistory?: ChatMessage[];
+}
+
+Deno.serve(async (req: Request) => {
+  if (req.method === "OPTIONS") {
+    return new Response(null, {
+      status: 200,
+      headers: corsHeaders,
+    });
   }
 
   try {
-    // Verify authentication
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
-      return new Response(JSON.stringify({ error: 'Authentication required' }), {
+      return new Response(JSON.stringify({
+        error: 'Authentication required',
+        success: false
+      }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
-    const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY');
     const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
 
-    if (!OPENAI_API_KEY || !SUPABASE_URL || !SUPABASE_ANON_KEY) {
-      console.error('Missing required environment variables');
-      return new Response(JSON.stringify({ error: 'Service configuration error' }), {
+    if (!OPENAI_API_KEY) {
+      console.error('Missing OPENAI_API_KEY environment variable');
+      return new Response(JSON.stringify({
+        error: 'Service configuration error. Please configure OpenAI API key.',
+        success: false
+      }), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    // Verify JWT token
-    const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-      global: { headers: { Authorization: authHeader } }
-    });
+    const requestBody: RequestBody = await req.json();
+    const { message, conversationHistory = [] } = requestBody;
 
-    const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
-    
-    if (authError || !user) {
-      console.error('Authentication failed');
-      return new Response(JSON.stringify({ error: 'Invalid or expired token' }), {
-        status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
-    // Parse and validate request body
-    const requestBody = await req.json();
-    const validationResult = chatRequestSchema.safeParse(requestBody);
-    
-    if (!validationResult.success) {
-      console.error('Validation failed:', validationResult.error.errors);
-      return new Response(JSON.stringify({ 
-        error: 'Invalid request data',
-        details: validationResult.error.errors.map(e => e.message)
+    if (!message || message.trim().length === 0) {
+      return new Response(JSON.stringify({
+        error: 'Message cannot be empty',
+        success: false
       }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    const { message, conversationHistory } = validationResult.data;
+    if (message.length > 2000) {
+      return new Response(JSON.stringify({
+        error: 'Message is too long. Maximum 2000 characters.',
+        success: false
+      }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
 
-    console.log('Processing chat message for user:', user.id);
-
-    // Create system prompt for health assistant
     const systemPrompt = `You are AIMWELL Assistant, an expert AI health and wellness coach. You provide evidence-based, personalized health guidance while maintaining a supportive and encouraging tone.
 
 Your expertise includes:
@@ -100,14 +92,14 @@ Guidelines:
 
 Keep responses concise but informative, and always consider the user's individual context when providing advice.`;
 
-    // Prepare messages array with conversation history
-    const messages = [
+    const messages: ChatMessage[] = [
       { role: 'system', content: systemPrompt },
-      ...(conversationHistory || []),
+      ...conversationHistory.slice(-10),
       { role: 'user', content: message }
     ];
 
-    // Call OpenAI API
+    console.log('Calling OpenAI API...');
+
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -126,8 +118,20 @@ Keep responses concise but informative, and always consider the user's individua
     if (!response.ok) {
       const errorData = await response.text();
       console.error('OpenAI API error:', response.status, errorData);
-      return new Response(JSON.stringify({ 
-        error: 'Failed to generate response. Please try again.'
+
+      if (response.status === 401) {
+        return new Response(JSON.stringify({
+          error: 'Invalid OpenAI API key. Please check your configuration.',
+          success: false
+        }), {
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      return new Response(JSON.stringify({
+        error: 'Failed to generate response. Please try again.',
+        success: false
       }), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -137,21 +141,21 @@ Keep responses concise but informative, and always consider the user's individua
     const data = await response.json();
     const aiResponse = data.choices[0].message.content;
 
-    console.log('AI response generated successfully for user:', user.id);
+    console.log('AI response generated successfully');
 
-    return new Response(JSON.stringify({ 
-      success: true, 
+    return new Response(JSON.stringify({
+      success: true,
       response: aiResponse,
-      message: 'Chat response generated successfully!'
     }), {
+      status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 
   } catch (error) {
     console.error('Error in ai-health-chat function:', error);
-    return new Response(JSON.stringify({ 
+    return new Response(JSON.stringify({
       error: 'An unexpected error occurred. Please try again later.',
-      success: false 
+      success: false
     }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
