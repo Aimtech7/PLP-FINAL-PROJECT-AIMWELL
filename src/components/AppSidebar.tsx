@@ -12,6 +12,7 @@ import {
   Award,
   FolderKanban,
   UserCog,
+  Sparkles,
 } from 'lucide-react';
 import {
   Sidebar,
@@ -28,6 +29,7 @@ import { useAdmin } from '@/hooks/useAdmin';
 
 const mainItems = [
   { title: 'Dashboard', url: '/', icon: Home },
+  { title: 'AI Summary', url: '/ai-summary', icon: Sparkles },
   { title: 'Education', url: '/education', icon: BookOpen },
   { title: 'Health Hub', url: '/health', icon: Heart },
   { title: 'Nutrition', url: '/nutrition', icon: Apple },
