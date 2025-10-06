@@ -2,23 +2,7 @@ import { useState, useRef } from "react";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { supabase } from "@/integrations/supabase/client";
 import AIChat from "@/components/AIChat";
-import {
-  LayoutDashboard,
-  BarChart3,
-  Users,
-  FileText,
-  Bell,
-  Settings,
-  Search,
-  TrendingUp,
-  TrendingDown,
-  DollarSign,
-  Activity,
-  Percent,
-  ChevronLeft,
-  ChevronRight,
-  FileText as FileTextIcon,
-} from "lucide-react";
+import { LayoutDashboard, ChartBar as BarChart3, Users, FileText, Bell, Settings, Search, TrendingUp, TrendingDown, DollarSign, Activity, Percent, ChevronLeft, ChevronRight, FileText as FileTextIcon } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -26,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Upload, Video, Image as ImageIcon } from "lucide-react";
+import { Loader as Loader2, Upload, Video, Image as ImageIcon } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,

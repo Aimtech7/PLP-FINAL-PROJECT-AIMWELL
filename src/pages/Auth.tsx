@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Heart, BookOpen, Users } from 'lucide-react';
+import { Loader as Loader2, Heart, BookOpen, Users } from 'lucide-react';
 import AIChat from '@/components/AIChat';
 
 const Auth = () => {
