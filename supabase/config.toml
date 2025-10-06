@@ -1,0 +1,5 @@
+project_id = "knglvzdhexfagdflyeqk"
+
+# Make verify-certificate function public (no JWT required)
+[functions.verify-certificate]
+verify_jwt = false
