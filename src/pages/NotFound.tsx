@@ -1,5 +1,6 @@
 import { useLocation } from "react-router-dom";
 import { useEffect } from "react";
+import AIChat from "@/components/AIChat";
 
 const NotFound = () => {
   const location = useLocation();
@@ -17,6 +18,7 @@ const NotFound = () => {
           Return to Home
         </a>
       </div>
+      <AIChat />
     </div>
   );
 };

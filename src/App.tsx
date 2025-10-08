@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { Layout } from "./components/Layout";
 import Dashboard from "./pages/Dashboard";
 import Auth from "./pages/Auth";
+import AISummary from "./pages/AISummary";
 import Education from "./pages/Education";
 import Health from "./pages/Health";
 import Admin from "./pages/Admin";
@@ -35,6 +36,7 @@ const App = () => (
           <Route path="/admin-dashboard" element={<AdminDashboard />} />
           <Route path="/" element={<Layout />}>
             <Route index element={<Dashboard />} />
+            <Route path="ai-summary" element={<AISummary />} />
             <Route path="education" element={<Education />} />
             <Route path="health" element={<Health />} />
             <Route path="nutrition" element={<Nutrition />} />

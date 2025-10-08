@@ -1,18 +1,6 @@
 import { useLocation } from 'react-router-dom';
 import { NavLink } from 'react-router-dom';
-import {
-  Home,
-  BookOpen,
-  Heart,
-  Apple,
-  Users,
-  CreditCard,
-  Settings,
-  Shield,
-  Award,
-  FolderKanban,
-  UserCog,
-} from 'lucide-react';
+import { Chrome as Home, BookOpen, Heart, Apple, Users, CreditCard, Settings, Shield, Award, FolderKanban, UserCog, Sparkles } from 'lucide-react';
 import {
   Sidebar,
   SidebarContent,
@@ -28,6 +16,7 @@ import { useAdmin } from '@/hooks/useAdmin';
 
 const mainItems = [
   { title: 'Dashboard', url: '/', icon: Home },
+  { title: 'AI Summary', url: '/ai-summary', icon: Sparkles },
   { title: 'Education', url: '/education', icon: BookOpen },
   { title: 'Health Hub', url: '/health', icon: Heart },
   { title: 'Nutrition', url: '/nutrition', icon: Apple },

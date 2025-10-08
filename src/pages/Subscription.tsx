@@ -2,10 +2,13 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Check, Crown, Sparkles, Zap, Shield, TrendingUp } from 'lucide-react';
+import { Check, Crown, Sparkles, Zap, Shield, TrendingUp, CreditCard, Smartphone } from 'lucide-react';
+import { MpesaPayment } from '@/components/MpesaPayment';
 
 interface SubscriptionStatus {
   subscribed: boolean;
@@ -100,6 +103,13 @@ const Subscription = () => {
     subscribed: false,
   });
   const [checkingSubscription, setCheckingSubscription] = useState(true);
+  const [showPaymentDialog, setShowPaymentDialog] = useState(false);
+  const [selectedPlan, setSelectedPlan] = useState<{
+    name: string;
+    price: number;
+    priceId: string;
+    productId: string;
+  } | null>(null);
 
   useEffect(() => {
     checkSubscriptionStatus();
@@ -128,7 +138,7 @@ const Subscription = () => {
     }
   };
 
-  const handleSubscribe = async (priceId: string, planName: string) => {
+  const handleSubscribe = async (plan: any, planKey: string) => {
     if (!user) {
       toast({
         title: 'Authentication Required',
@@ -138,10 +148,22 @@ const Subscription = () => {
       return;
     }
 
+    setSelectedPlan({
+      name: plan.name,
+      price: plan.price,
+      priceId: plan.price_id,
+      productId: plan.product_id,
+    });
+    setShowPaymentDialog(true);
+  };
+
+  const handleStripeCheckout = async () => {
+    if (!selectedPlan || !user) return;
+
     setLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke('create-checkout', {
-        body: { price_id: priceId },
+        body: { price_id: selectedPlan.priceId },
         headers: {
           Authorization: `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
         },
@@ -153,7 +175,7 @@ const Subscription = () => {
         window.open(data.url, '_blank');
         toast({
           title: 'Redirecting to checkout',
-          description: `Opening Stripe checkout for ${planName} plan`,
+          description: `Opening Stripe checkout for ${selectedPlan.name} plan`,
         });
       }
     } catch (error) {
@@ -166,6 +188,23 @@ const Subscription = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleMpesaSuccess = async (transactionId: string) => {
+    toast({
+      title: 'Payment Successful!',
+      description: 'Your subscription has been activated.',
+    });
+    setShowPaymentDialog(false);
+    checkSubscriptionStatus();
+  };
+
+  const handleMpesaError = (error: string) => {
+    toast({
+      title: 'Payment Failed',
+      description: error,
+      variant: 'destructive',
+    });
   };
 
   const handleManageSubscription = async () => {
@@ -305,7 +344,7 @@ const Subscription = () => {
                   className="w-full"
                   variant={plan.popular ? 'default' : 'outline'}
                   disabled={loading || isCurrentPlan || isFree}
-                  onClick={() => !isFree && handleSubscribe(plan.price_id!, plan.name)}
+                  onClick={() => !isFree && handleSubscribe(plan, key)}
                 >
                   {isCurrentPlan
                     ? 'Current Plan'
@@ -355,6 +394,79 @@ const Subscription = () => {
           </div>
         </CardContent>
       </Card>
+
+      {/* Payment Dialog */}
+      <Dialog open={showPaymentDialog} onOpenChange={setShowPaymentDialog}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Choose Payment Method</DialogTitle>
+            <DialogDescription>
+              Complete your subscription to {selectedPlan?.name} - KES {selectedPlan?.price.toLocaleString()}/month
+            </DialogDescription>
+          </DialogHeader>
+
+          <Tabs defaultValue="mpesa" className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="mpesa" className="gap-2">
+                <Smartphone className="h-4 w-4" />
+                M-Pesa
+              </TabsTrigger>
+              <TabsTrigger value="stripe" className="gap-2">
+                <CreditCard className="h-4 w-4" />
+                Card/Other
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="mpesa" className="space-y-4 mt-4">
+              {selectedPlan && (
+                <MpesaPayment
+                  amount={selectedPlan.price}
+                  accountReference={`AIMWELL-${selectedPlan.productId}`}
+                  transactionDesc={`${selectedPlan.name} Plan Subscription`}
+                  onSuccess={handleMpesaSuccess}
+                  onError={handleMpesaError}
+                />
+              )}
+            </TabsContent>
+
+            <TabsContent value="stripe" className="space-y-4 mt-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <CreditCard className="h-5 w-5" />
+                    Pay with Card
+                  </CardTitle>
+                  <CardDescription>
+                    Secure payment processing via Stripe
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="bg-muted p-4 rounded-lg space-y-2">
+                    <p className="text-sm">
+                      <strong>Plan:</strong> {selectedPlan?.name}
+                    </p>
+                    <p className="text-sm">
+                      <strong>Amount:</strong> KES {selectedPlan?.price.toLocaleString()}/month
+                    </p>
+                  </div>
+
+                  <Button
+                    className="w-full"
+                    onClick={handleStripeCheckout}
+                    disabled={loading}
+                  >
+                    {loading ? 'Processing...' : 'Continue to Stripe Checkout'}
+                  </Button>
+
+                  <p className="text-xs text-muted-foreground text-center">
+                    You will be redirected to Stripe's secure checkout page
+                  </p>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

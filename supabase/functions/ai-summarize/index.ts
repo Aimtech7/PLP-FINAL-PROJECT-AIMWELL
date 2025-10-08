@@ -1,115 +1,203 @@
-import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey",
 };
 
-serve(async (req) => {
+interface RequestBody {
+  content: string;
+  type: 'text' | 'video' | 'image' | 'research';
+}
+
+Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, {
+      status: 200,
+      headers: corsHeaders,
+    });
   }
 
   try {
-    const { content, type } = await req.json();
-
-    if (!content) {
-      throw new Error("No content provided");
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      return new Response(JSON.stringify({
+        error: 'Authentication required',
+        success: false
+      }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) {
-      throw new Error("LOVABLE_API_KEY is not configured");
+    const requestBody: RequestBody = await req.json();
+    const { content, type } = requestBody;
+
+    if (!content || content.trim().length === 0) {
+      return new Response(JSON.stringify({
+        error: 'Content cannot be empty',
+        success: false
+      }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
-    console.log("[AI-SUMMARIZE] Processing request - Type:", type);
+    const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
 
-    // Prepare the message based on content type
+    if (!OPENAI_API_KEY) {
+      console.error('Missing OPENAI_API_KEY environment variable');
+      return new Response(JSON.stringify({
+        error: 'Service configuration error. Please configure OpenAI API key.',
+        success: false
+      }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    console.log(`Processing ${type} summarization request...`);
+
     let messages: any[] = [];
+    let model = 'gpt-4o';
 
-    if (type === "image") {
-      // For images, send as vision input
-      messages = [
-        {
-          role: "system",
-          content: "You are a helpful AI assistant that provides concise, accurate summaries of images. Describe what you see in detail, including key elements, people, objects, text, and context."
-        },
-        {
-          role: "user",
-          content: [
-            {
-              type: "text",
-              text: "Please provide a detailed summary of this image."
-            },
-            {
-              type: "image_url",
-              image_url: {
-                url: content // content should be a base64 data URL or regular URL
+    switch (type) {
+      case 'image':
+        messages = [
+          {
+            role: "system",
+            content: "You are an expert image analyzer. Provide detailed, accurate descriptions and summaries of images. Include key elements, colors, composition, text (if any), and context. Structure your response with clear sections."
+          },
+          {
+            role: "user",
+            content: [
+              {
+                type: "text",
+                text: "Please provide a comprehensive analysis and summary of this image. Include:\n1. Main Subject/Content\n2. Key Details\n3. Visual Elements (colors, composition)\n4. Any text or writing\n5. Context or purpose"
+              },
+              {
+                type: "image_url",
+                image_url: {
+                  url: content
+                }
               }
-            }
-          ]
-        }
-      ];
-    } else {
-      // For text/video URL
-      const prompt = type === "video" 
-        ? `Please provide a comprehensive summary of the video at this URL: ${content}\n\nIf you cannot access the video directly, provide guidance on how to summarize video content.`
-        : `Please provide a concise and comprehensive summary of the following text:\n\n${content}`;
+            ]
+          }
+        ];
+        break;
 
-      messages = [
-        {
-          role: "system",
-          content: "You are a helpful AI assistant that provides clear, concise summaries. Focus on the main points and key takeaways."
-        },
-        {
-          role: "user",
-          content: prompt
+      case 'video':
+        messages = [
+          {
+            role: "system",
+            content: "You are an expert at analyzing video URLs and providing summaries. When given a video URL (especially YouTube), extract the video ID and provide guidance about the content based on common video analysis patterns."
+          },
+          {
+            role: "user",
+            content: `Please provide a comprehensive summary and analysis for this video URL: ${content}\n\nInclude:\n1. Video platform and type\n2. Expected content based on URL\n3. How to get detailed information about this video\n4. Key considerations for video content analysis`
+          }
+        ];
+        break;
+
+      case 'research':
+        messages = [
+          {
+            role: "system",
+            content: "You are an expert research assistant with comprehensive knowledge across multiple domains. Provide well-researched, accurate, and detailed information on any topic. Structure your responses with:\n1. Overview/Introduction\n2. Key Points (numbered)\n3. Detailed Analysis\n4. Practical Applications/Examples\n5. Important Considerations\n6. Summary/Conclusion\n\nUse clear formatting with headers, bullet points, and emphasis where appropriate."
+          },
+          {
+            role: "user",
+            content: `Please provide comprehensive research and analysis on the following topic:\n\n${content}\n\nInclude relevant facts, current understanding, practical applications, and important considerations.`
+          }
+        ];
+        break;
+
+      case 'text':
+      default:
+        if (content.length > 10000) {
+          return new Response(JSON.stringify({
+            error: 'Text content is too long. Please limit to 10,000 characters.',
+            success: false
+          }), {
+            status: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
         }
-      ];
+
+        messages = [
+          {
+            role: "system",
+            content: "You are an expert summarization assistant. Create clear, concise, and comprehensive summaries that capture the key points and essential information. Structure your summaries with:\n1. Main Topic/Theme\n2. Key Points (bulleted)\n3. Important Details\n4. Conclusion/Takeaway"
+          },
+          {
+            role: "user",
+            content: `Please provide a comprehensive summary of the following text:\n\n${content}`
+          }
+        ];
+        break;
     }
 
-    // Call Lovable AI Gateway
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
+    console.log('Calling OpenAI API...');
+
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
       headers: {
-        "Authorization": `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
+        'Authorization': `Bearer ${OPENAI_API_KEY}`,
+        'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
+        model: model,
         messages: messages,
+        max_tokens: 1500,
         temperature: 0.7,
-        max_tokens: 1000,
       }),
     });
 
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error("[AI-SUMMARIZE] API Error:", response.status, errorText);
-      throw new Error(`AI API error: ${response.status}`);
+      const errorData = await response.text();
+      console.error('OpenAI API error:', response.status, errorData);
+
+      if (response.status === 401) {
+        return new Response(JSON.stringify({
+          error: 'Invalid OpenAI API key. Please check your configuration.',
+          success: false
+        }), {
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      return new Response(JSON.stringify({
+        error: 'Failed to generate summary. Please try again.',
+        success: false
+      }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     const data = await response.json();
     const summary = data.choices[0].message.content;
 
-    console.log("[AI-SUMMARIZE] Summary generated successfully");
+    console.log('Summary generated successfully');
 
-    return new Response(
-      JSON.stringify({ summary }),
-      {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 200,
-      }
-    );
+    return new Response(JSON.stringify({
+      success: true,
+      summary: summary,
+    }), {
+      status: 200,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+
   } catch (error) {
-    console.error("[AI-SUMMARIZE] Error:", error);
-    const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
-    return new Response(
-      JSON.stringify({ error: errorMessage }),
-      {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 500,
-      }
-    );
+    console.error('Error in ai-summarize function:', error);
+    return new Response(JSON.stringify({
+      error: 'An unexpected error occurred. Please try again later.',
+      success: false
+    }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
   }
 });
